@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 
 from bson import ObjectId
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, render_template
 from flask_login import login_required, current_user
 from werkzeug.exceptions import BadRequest
 from pymongo import ReturnDocument
@@ -179,16 +179,27 @@ def verify_payment():
             booking_id,
         )
         # Best-effort mark as failed if we can locate the booking
+        from utils.email_service import send_booking_email
+        failed_booking_data = None
         if booking_id:
             try:
+                failed_booking_data = db.bookings.find_one({"_id": ObjectId(booking_id)})
                 update_booking_status(db, booking_id, status="Failed", payment_status="Failed")
             except Exception:
                 logger.exception("Failed to update booking status after signature failure")
         else:
+            failed_booking_data = db.bookings.find_one({"razorpay_order_id": order_id})
             db.bookings.update_one(
                 {"razorpay_order_id": order_id},
                 {"$set": {"status": "Failed", "payment_status": "Failed"}},
             )
+            
+        if failed_booking_data:
+            try:
+                send_booking_email(failed_booking_data, is_success=False)
+            except Exception as e:
+                logger.error("Failed to send payment failure email: %s", e)
+                
         return jsonify({"success": False, "message": "Payment verification failed"}), 400
 
     # Locate booking by server-controlled razorpay_order_id, optionally verifying client booking_id
@@ -341,6 +352,13 @@ def verify_payment():
         order_id,
         payment_id,
     )
+
+    try:
+        from utils.email_service import send_booking_email
+        send_booking_email(updated, is_success=True)
+    except Exception as e:
+        logger.error("Failed to send payment success email: %s", e)
+
     return jsonify({"success": True, "message": "Payment successful"})
 
 
@@ -416,17 +434,26 @@ def razorpay_webhook():
 
 @payment_bp.route("/success", methods=["GET"])
 def payment_success():
-    return (
-        "<h2>Payment Successful!</h2><p>Your booking and payment have been confirmed. "
-        "Thank you! <a href='/'>Back to Home</a></p>",
-        200,
-    )
+    return render_template("payment_success.html"), 200
 
 
 @payment_bp.route("/failure", methods=["GET"])
 def payment_failure():
-    return (
-        "<h2>Payment Failed</h2><p>Your payment could not be processed. "
-        "Please try again or contact support. <a href='/'>Back to Home</a></p>",
-        200,
-    )
+    booking_id = request.args.get("booking_id")
+    if booking_id:
+        try:
+            db = get_db()
+            booking = db.bookings.find_one({"_id": ObjectId(booking_id)})
+            status = booking.get("status")
+            if booking and status not in ["Failed", "Confirmed", "Cancelled"]:
+                # The user cancelled the modal, mark as Failed
+                from models.booking_model import update_booking_status
+                update_booking_status(db, booking_id, status="Failed", payment_status="Failed")
+                
+                # Try sending the email
+                from utils.email_service import send_booking_email
+                send_booking_email(booking, is_success=False)
+        except Exception as e:
+            logger.error("Failed to process dismissed payment for %s: %s", booking_id, e)
+
+    return render_template("payment_failure.html"), 200

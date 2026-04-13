@@ -35,11 +35,20 @@
       <p class="text-sm text-gray-600 mt-3">Advance Payment ({{ booking.get('advance_percent', 0) }}%):</p>
       <p class="text-xl font-bold text-orange-600">₹{{ "%.2f"|format(booking.get('advance_amount', 0)) }}</p>
       <p class="text-xs text-gray-500 mt-1">{{ booking.get('group_size', booking.get('booking_details', {}).get('group_size', '')) }} × ₹{{ "%.2f"|format(per_person) }} × {{ booking.get('advance_percent', 0) }}%</p>
+
+      {% if booking.get('allow_payment', True) %}
+      <!-- CASE 1: Capacity available -> allow payment -->
       <div class="text-center mt-4">
         <button id="proceedToPayment" class="btn btn-primary">Proceed to Payment</button>
         <div id="loading" style="display:none;">Processing...</div>
         <div id="error" class="text-danger"></div>
       </div>
+      {% else %}
+      <!-- CASE 2: Capacity exceeded -> payment disabled -->
+      <div class="mt-4 text-center text-sm text-red-600 font-semibold">
+        Not enough capacity in this slot. Payment is disabled for this booking.
+      </div>
+      {% endif %}
     </div>
   </div>
   {% endif %}

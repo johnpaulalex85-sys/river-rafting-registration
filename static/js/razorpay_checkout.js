@@ -27,7 +27,7 @@ function openRazorpayCheckout(orderData) {
         },
         "modal": {
             "ondismiss": function(){
-                window.location.href = '/payment/failure';
+                window.location.href = '/payment/failure?booking_id=' + orderData.booking_id;
             }
         }
     };

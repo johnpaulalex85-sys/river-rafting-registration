@@ -29,6 +29,7 @@ def create_booking(
     status="Pending",
     razorpay_order_id=None,
     payment_status="Pending",
+    allow_payment=True,
 ):
     """
     Create a booking document.
@@ -46,6 +47,9 @@ def create_booking(
         "currency": currency,
         "status": booking_status,
         "payment_status": payment_status_norm,
+        # Whether user is allowed to proceed to payment.
+        # False is used for capacity-exceeded / waitlist-style bookings.
+        "allow_payment": bool(allow_payment),
         "razorpay_order_id": razorpay_order_id,
         "created_at": datetime.now(timezone.utc),
         "date": booking_details.get("date"),

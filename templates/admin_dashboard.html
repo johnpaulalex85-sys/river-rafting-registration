@@ -122,6 +122,7 @@
             <th class="px-4 py-2 border">Group Size</th>
             <th class="px-4 py-2 border">Rafts</th>
             <th class="px-4 py-2 border">Payment Status</th>
+             <th class="px-4 py-2 border">Advance</th>
             <th class="px-4 py-2 border">Balance Amount</th>
             <th class="px-4 py-2 border">Status</th>
           </tr>
@@ -145,6 +146,7 @@
             <td class="border px-4 py-2">
               {{ b.payment_status_display or 'Not paid' }}
             </td>
+             <td class="border px-4 py-2">₹{{ "%.2f"|format(b.advance_amount|default(0)) }}</td>
             <td class="border px-4 py-2">
               ₹{{ "%.2f"|format(b.balance_amount|default(0)) }}
             </td>
@@ -173,6 +175,7 @@
             <th class="px-4 py-2 border">Group Size</th>
             <th class="px-4 py-2 border">Rafts</th>
             <th class="px-4 py-2 border">Payment Status</th>
+             <th class="px-4 py-2 border">Advance</th>
             <th class="px-4 py-2 border">Balance Amount</th>
             <th class="px-4 py-2 border">Status</th>
           </tr>
@@ -196,6 +199,7 @@
             <td class="border px-4 py-2">
               {{ b.payment_status_display or 'Not paid' }}
             </td>
+             <td class="border px-4 py-2">₹{{ "%.2f"|format(b.advance_amount|default(0)) }}</td>
             <td class="border px-4 py-2">
               ₹{{ "%.2f"|format(b.balance_amount|default(0)) }}
             </td>
@@ -234,6 +238,7 @@
             <th class="px-4 py-2 border">Group Size</th>
             <th class="px-4 py-2 border">Rafts</th>
             <th class="px-4 py-2 border">Payment Status</th>
+             <th class="px-4 py-2 border">Advance</th>
             <th class="px-4 py-2 border">Balance Amount</th>
             <th class="px-4 py-2 border">Status</th>
             <th class="px-4 py-2 border">Actions</th>
@@ -259,6 +264,7 @@
             <td class="border px-4 py-2">
               {{ b.payment_status_display or 'Not paid' }}
             </td>
+             <td class="border px-4 py-2">₹{{ "%.2f"|format(b.advance_amount|default(0)) }}</td>
             <td class="border px-4 py-2">
               ₹{{ "%.2f"|format(b.balance_amount|default(0)) }}
             </td>

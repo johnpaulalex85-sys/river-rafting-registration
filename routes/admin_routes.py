@@ -68,7 +68,11 @@ def dashboard():
     settings = load_settings(db)
     time_slots = settings.get('time_slots') or []
     # Build query filter for bookings list (filters apply only to bookings)
-    query_filter = {"status": {"$in": ["Confirmed", "Pending", "paid"]}}
+    # Default behaviour for Admin:
+    #   - Show only Confirmed bookings (paid / capacity-reserved).
+    #   - Pending bookings are primarily capacity-exceeded / manual review
+    #     cases and are hidden by default.
+    query_filter = {}
 
     # DB sort: date and created_at; slot order applied in Python using configured time_slots
     sort_order = [('date', 1), ('created_at', -1)]
@@ -179,11 +183,25 @@ def dashboard():
         query_filter['slot'] = slot_filter
 
     # Status filter
-    if status_filter and status_filter.lower() != 'all':
-        query_filter['status'] = status_filter
-    elif not status_filter or status_filter.lower() == 'all':
-        # Remove status filter to show all bookings for date/slot
-        query_filter.pop('status', None)
+    if not status_filter:
+        # Default: only confirmed bookings
+        query_filter['status'] = 'Confirmed'
+    elif status_filter and status_filter.lower() != 'all':
+        if status_filter == 'Pending':
+            # When explicitly filtering for Pending, show only
+            # capacity-exceeded (no-payment) cases.
+            query_filter['status'] = 'Pending'
+            query_filter['allow_payment'] = False
+        else:
+            query_filter['status'] = status_filter
+    elif status_filter and status_filter.lower() == 'all':
+        # "All" still hides normal pending-with-payment bookings by default;
+        # only Pending records created due to capacity issues (allow_payment=False)
+        # are included.
+        query_filter['$or'] = [
+            {'status': {'$ne': 'Pending'}},
+            {'status': 'Pending', 'allow_payment': False}
+        ]
 
     from utils.amount_calculator import calculate_total_amount
 

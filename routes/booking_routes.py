@@ -172,10 +172,10 @@ def book():
         # without actually reserving seats or assigning rafts yet.
         # This keeps the flow:
         #   Pending booking -> no raft, no seat reserved.
+        # If capacity is exhausted we still create a booking record, but
+        # mark allow_payment=False so that the user cannot pay and the
+        # admin can see the request as a capacity-exceeded case.
         has_capacity = check_capacity_available(db, booking_date_str, slot, group_size)
-        if not has_capacity:
-            flash('Not enough capacity in this slot.', 'error')
-            return redirect(url_for('booking.book'))
         
         # Calculate amount for this booking
         amount_calc = calculate_total_amount(settings, booking_date_str, group_size)
@@ -186,6 +186,9 @@ def book():
         # - A newly created booking is always Pending.
         # - NO raft is assigned and NO seat is reserved at this stage.
         # - Rafts and occupancy are updated only after successful payment.
+        # - allow_payment flag controls whether the payment button is shown:
+        #     * True  -> CASE 1: capacity available, user can pay.
+        #     * False -> CASE 2: capacity exceeded, no payment allowed.
         booking_details = {
             'name': name,
             'email': email,
@@ -204,8 +207,12 @@ def book():
             currency='INR',
             status='Pending',
             payment_status='Pending',
+            allow_payment=bool(has_capacity),
         )
-        flash('Booking created. Please complete payment to confirm your slot.', 'info')
+        if has_capacity:
+            flash('Booking created. Please complete payment to confirm your slot.', 'info')
+        else:
+            flash('Not enough capacity in this slot. Your booking is pending; payment is disabled.', 'warning')
         return redirect(url_for('booking.booking_confirmation', booking_id=booking_id))
     # For GET requests, provide the min_date and max_date so the frontend datepicker can enforce range
     return render_template('booking.html', settings=settings, min_date=min_date.isoformat(), max_date=max_date.isoformat(), start_date=start_date.isoformat(), end_date=end_date.isoformat())
